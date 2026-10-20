@@ -70,27 +70,20 @@
   #mainView.lrc #artwork { left: 0; top: 7px; width: 50px; transform: none;
     border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,.4); }
 
-  /* 歌词页眉文字：小封面右侧的歌名/歌手，仅歌词模式可见 */
-  #lrcHead { position: absolute; left: 62px; right: 0; top: 0; height: 64px;
-    display: flex; flex-direction: column; justify-content: center;
-    opacity: 0; visibility: hidden; transform: translateX(8px); pointer-events: none;
-    transition: opacity .3s ease, transform .38s cubic-bezier(.32,.72,.28,1), visibility 0s linear .38s; }
-  #mainView.lrc #lrcHead { opacity: 1; visibility: visible; transform: none;
-    transition: opacity .3s ease .06s, transform .38s cubic-bezier(.32,.72,.28,1), visibility 0s; }
-  #lrcHeadName { font-size: 15.5px; font-weight: 600; line-height: 1.3;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #lrcHeadArtist { margin-top: 2px; font-size: 12.5px; line-height: 1.3; color: rgba(255,255,255,.55);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-  /* 歌名 / 歌手（iOS 左对齐，封面页专用） */
-  #meta { margin-top: 10px; max-height: 72px; overflow: hidden;
-    transition: max-height .38s cubic-bezier(.32,.72,.28,1), margin-top .38s cubic-bezier(.32,.72,.28,1), opacity .25s ease; }
-  /* 歌词模式：大歌名区淡出并完全退出布局、不占歌词空间（歌名歌手改由页眉小字呈现） */
-  #mainView.lrc #meta { max-height: 0; margin-top: 0; opacity: 0; pointer-events: none; }
+  /* 歌名 / 歌手：与封面同一组元素——封面页在大封面正下方（大字），
+     歌词模式随封面一起平移到页眉小封面右侧，字号同步缩小，全程一条连贯动画 */
+  #meta { position: absolute; left: 0; right: 0; margin: 0;
+    top: calc(50% + min(36vw, 20dvh, 170px) + 16px);
+    transition: top .38s cubic-bezier(.32,.72,.28,1), left .38s cubic-bezier(.32,.72,.28,1); }
+  #mainView.lrc #meta { left: 62px; top: 13px; }
   #songName { font-size: 22px; font-weight: 700; line-height: 1.3; letter-spacing: .01em;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: font-size .38s cubic-bezier(.32,.72,.28,1); }
   #songArtist { margin-top: 3px; font-size: 22px; font-weight: 400; line-height: 1.3; color: rgba(255,255,255,.55);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: font-size .38s cubic-bezier(.32,.72,.28,1), margin-top .38s cubic-bezier(.32,.72,.28,1); }
+  #mainView.lrc #songName { font-size: 15.5px; }
+  #mainView.lrc #songArtist { font-size: 12.5px; margin-top: 2px; }
 
   /* iOS 风进度条 */
   #seek { margin-top: 18px; }
@@ -162,13 +155,12 @@
   <div id="mainView">
     <div id="viewArea">
       <img id="artwork" alt="">
-      <div id="lrcHead"><div id="lrcHeadName"></div><div id="lrcHeadArtist"></div></div>
+      <div id="meta">
+        <div id="songName"></div>
+        <div id="songArtist"></div>
+      </div>
     </div>
     <div id="lrcScroll"><div id="lrcInner"></div></div>
-    <div id="meta">
-      <div id="songName"></div>
-      <div id="songArtist"></div>
-    </div>
     <div id="seek">
       <div id="seekBar"><div id="seekTrack"><div id="seekFill"></div><div id="seekDot"></div></div></div>
       <div id="seekTimes"><span id="tCur">0:00</span><span id="tRem">-0:00</span></div>
@@ -235,8 +227,6 @@
       }
       document.getElementById("songName").textContent = s.name || "歌曲";
       document.getElementById("songArtist").textContent = s.artist || "";
-      document.getElementById("lrcHeadName").textContent = s.name || "歌曲";
-      document.getElementById("lrcHeadArtist").textContent = s.artist || "";
       var mainView = document.getElementById("mainView");
       mainView.style.display = "flex";
 

@@ -6,31 +6,100 @@
 <title>播放器</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.css">
 <style>
-  html, body { margin: 0; padding: 0; background: #121212; color: #eee;
-    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
-  #wrap { max-width: 560px; margin: 0 auto; padding: 28px 16px 40px; }
-  #hint { text-align: center; color: #aaa; font-size: 15px; line-height: 1.7; padding: 48px 12px; }
-  #player { margin-top: 8px; }
-  .aplayer { border-radius: 12px; overflow: hidden; box-shadow: 0 6px 24px rgba(0,0,0,.5); }
-  .aplayer .aplayer-pic { height: 120px !important; width: 120px !important; }
-  .aplayer .aplayer-info { margin-left: 120px !important; height: 120px !important; padding: 14px 7px 0 14px !important; }
-  .aplayer .aplayer-info .aplayer-music .aplayer-title { font-size: 17px !important; }
-  .aplayer .aplayer-info .aplayer-music .aplayer-author { font-size: 13px !important; }
-  .aplayer .aplayer-lrc { height: 180px; margin-top: 12px; }
-  .aplayer .aplayer-lrc p { font-size: 14px; line-height: 26px; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; min-height: 100%; overflow-x: hidden;
+    background: #0b0b10; color: #f2f2f5;
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    -webkit-tap-highlight-color: transparent; }
+
+  /* 全屏封面模糊背景 + 暗色遮罩 */
+  #bg { position: fixed; inset: -40px; z-index: 0;
+    background-size: cover; background-position: center;
+    filter: blur(48px) brightness(.62) saturate(1.25);
+    transform: scale(1.15); opacity: 0; transition: opacity .8s ease; }
+  #bg.on { opacity: 1; }
+  #bgmask { position: fixed; inset: 0; z-index: 1;
+    background: linear-gradient(180deg, rgba(5,5,10,.38) 0%, rgba(5,5,10,.62) 55%, rgba(5,5,10,.85) 100%); }
+
+  #wrap { position: relative; z-index: 2; max-width: 440px; margin: 0 auto;
+    padding: 34px 18px 44px; }
+
+  /* 加载状态 */
+  #hint { text-align: center; color: rgba(255,255,255,.75); font-size: 15px;
+    line-height: 1.7; padding: 90px 12px 0; }
+  #spinner { width: 46px; height: 46px; margin: 0 auto 18px; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,.18); border-top-color: #ec4141;
+    animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 中央玻璃卡片 */
+  #card { display: none; background: rgba(18,18,26,.55);
+    border: 1px solid rgba(255,255,255,.09); border-radius: 26px;
+    box-shadow: 0 24px 60px rgba(0,0,0,.55);
+    backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+    padding: 30px 22px 16px; text-align: center;
+    animation: fadeUp .5s ease both; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+  /* 唱片封面 */
+  #disc { width: min(58vw, 228px); height: min(58vw, 228px); margin: 2px auto 0;
+    border-radius: 50%; padding: 7px;
+    background: conic-gradient(from 210deg, #2b2b33, #101014, #2b2b33, #101014, #2b2b33);
+    box-shadow: 0 16px 38px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.06);
+    cursor: pointer; }
+  #disc img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+    animation: spin 18s linear infinite; animation-play-state: paused; }
+  #disc.playing img { animation-play-state: running; }
+
+  #songName { margin-top: 22px; font-size: 21px; font-weight: 600; line-height: 1.35;
+    letter-spacing: .02em; word-break: break-word; }
+  #songArtist { margin-top: 6px; font-size: 14px; color: rgba(255,255,255,.55);
+    word-break: break-word; }
+
+  /* APlayer 融入卡片 */
+  #player { margin-top: 10px; text-align: left; }
+  .aplayer { background: transparent !important; box-shadow: none !important;
+    margin: 0 !important; font-family: inherit !important; border-radius: 0; overflow: visible; }
+  .aplayer .aplayer-pic { display: none !important; }
+  .aplayer .aplayer-info { margin-left: 0 !important; height: auto !important;
+    padding: 0 !important; border: none !important; }
+  .aplayer .aplayer-info .aplayer-music { display: none !important; }
+  .aplayer .aplayer-lrc { height: 168px; margin: 6px 0 2px; text-shadow: none; }
+  .aplayer .aplayer-lrc:before, .aplayer .aplayer-lrc:after { display: none; }
+  .aplayer .aplayer-lrc p { font-size: 14px; line-height: 26px; color: rgba(255,255,255,.45);
+    text-shadow: none; opacity: 1; }
+  .aplayer .aplayer-lrc .aplayer-lrc-current { color: #fff !important; font-size: 15px; }
+  .aplayer .aplayer-info .aplayer-controller { margin-top: 4px; }
+  .aplayer .aplayer-info .aplayer-controller .aplayer-bar-wrap .aplayer-bar {
+    background: rgba(255,255,255,.18); }
+  .aplayer .aplayer-info .aplayer-controller .aplayer-time { color: rgba(255,255,255,.6); }
+  .aplayer .aplayer-info .aplayer-controller .aplayer-time .aplayer-time-inner { color: inherit; }
+  .aplayer .aplayer-icon { opacity: .92; }
+  .aplayer .aplayer-icon path { fill: #f2f2f5; }
+  .aplayer .aplayer-list { display: none !important; }
 </style>
 </head>
 <body>
+<div id="bg"></div>
+<div id="bgmask"></div>
 <div id="wrap">
-  <div id="hint">加载中…</div>
-  <div id="player"></div>
+  <div id="hint"><div id="spinner"></div>加载中…</div>
+  <div id="card">
+    <div id="disc"><img id="coverImg" alt=""></div>
+    <div id="songName"></div>
+    <div id="songArtist"></div>
+    <div id="player"></div>
+  </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/aplayer@1.10.1/dist/APlayer.min.js"></script>
 <script>
 (function () {
   var hint = document.getElementById("hint");
+  var spinner = document.getElementById("spinner");
   var id = new URLSearchParams(location.search).get("id") || "";
   if (!/^\d+$/.test(id)) {
+    spinner.style.display = "none";
     hint.textContent = "没有指定歌曲。在群里对机器人发 /网易云 <歌名>，点它给的播放链接来听。";
     return;
   }
@@ -42,9 +111,21 @@
       if (!s || !s.url) throw new Error("empty");
       document.title = (s.name || "歌曲") + (s.artist ? " - " + s.artist : "");
       hint.style.display = "none";
-      new APlayer({
+
+      if (s.pic) {
+        var bg = document.getElementById("bg");
+        bg.style.backgroundImage = "url('" + s.pic + "')";
+        bg.classList.add("on");
+        document.getElementById("coverImg").src = s.pic;
+      }
+      document.getElementById("songName").textContent = s.name || "歌曲";
+      document.getElementById("songArtist").textContent = s.artist || "";
+      document.getElementById("card").style.display = "block";
+
+      var disc = document.getElementById("disc");
+      var ap = new APlayer({
         container: document.getElementById("player"),
-        theme: "#b7daff",
+        theme: "#ec4141",
         lrcType: 1,
         autoplay: true,
         audio: [{
@@ -55,8 +136,13 @@
           lrc: s.lrc
         }]
       });
+      ap.on("play", function () { disc.classList.add("playing"); });
+      ap.on("pause", function () { disc.classList.remove("playing"); });
+      ap.on("ended", function () { disc.classList.remove("playing"); });
+      disc.addEventListener("click", function () { ap.toggle(); });
     })
     .catch(function () {
+      spinner.style.display = "none";
       hint.textContent = "加载失败，换首歌试试。";
     });
 })();

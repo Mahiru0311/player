@@ -54,8 +54,10 @@
 
   #mainView { flex: 1; display: none; flex-direction: column; min-height: 0; }
 
-  /* 视图区：封面与歌词共用，封面靠 transition 在大图/小图间平滑变形 */
-  #viewArea { position: relative; flex: 1 1 auto; min-height: 0; }
+  /* 视图区：封面页时占满剩余高度；歌词模式收成 64px 页眉条，封面靠 transition 缩入页眉左端 */
+  #viewArea { position: relative; flex: 1 1 0%; min-height: 0;
+    transition: flex-grow .38s cubic-bezier(.32,.72,.28,1), flex-basis .38s cubic-bezier(.32,.72,.28,1); }
+  #mainView.lrc #viewArea { flex: 0 0 64px; }
   #viewArea.shake { animation: viewShake .3s ease; }
   @keyframes viewShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
   #artwork { position: absolute; left: 50%; top: 50%; width: min(72vw, 40dvh, 340px);
@@ -65,11 +67,26 @@
     box-shadow: 0 30px 60px rgba(0,0,0,.55), 0 6px 18px rgba(0,0,0,.35);
     cursor: pointer; z-index: 3;
     transition: all .38s cubic-bezier(.32,.72,.28,1); }
-  #mainView.lrc #artwork { left: 0; top: 6px; width: 50px; transform: none;
+  #mainView.lrc #artwork { left: 0; top: 7px; width: 50px; transform: none;
     border-radius: 8px; box-shadow: 0 6px 16px rgba(0,0,0,.4); }
 
-  /* 歌名 / 歌手（iOS 左对齐，两种视图共用） */
-  #meta { margin-top: 10px; }
+  /* 歌词页眉文字：小封面右侧的歌名/歌手，仅歌词模式可见 */
+  #lrcHead { position: absolute; left: 62px; right: 0; top: 0; height: 64px;
+    display: flex; flex-direction: column; justify-content: center;
+    opacity: 0; visibility: hidden; transform: translateX(8px); pointer-events: none;
+    transition: opacity .3s ease, transform .38s cubic-bezier(.32,.72,.28,1), visibility 0s linear .38s; }
+  #mainView.lrc #lrcHead { opacity: 1; visibility: visible; transform: none;
+    transition: opacity .3s ease .06s, transform .38s cubic-bezier(.32,.72,.28,1), visibility 0s; }
+  #lrcHeadName { font-size: 15.5px; font-weight: 600; line-height: 1.3;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #lrcHeadArtist { margin-top: 2px; font-size: 12.5px; line-height: 1.3; color: rgba(255,255,255,.55);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* 歌名 / 歌手（iOS 左对齐，封面页专用） */
+  #meta { margin-top: 10px; max-height: 72px; overflow: hidden;
+    transition: max-height .38s cubic-bezier(.32,.72,.28,1), margin-top .38s cubic-bezier(.32,.72,.28,1), opacity .25s ease; }
+  /* 歌词模式：大歌名区淡出并完全退出布局、不占歌词空间（歌名歌手改由页眉小字呈现） */
+  #mainView.lrc #meta { max-height: 0; margin-top: 0; opacity: 0; pointer-events: none; }
   #songName { font-size: 22px; font-weight: 700; line-height: 1.3; letter-spacing: .01em;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #songArtist { margin-top: 3px; font-size: 22px; font-weight: 400; line-height: 1.3; color: rgba(255,255,255,.55);
@@ -110,18 +127,22 @@
   .dockBtn.off { opacity: .32; pointer-events: none; }
   .dockBtn:active { opacity: .6; }
 
-  /* 歌词层：与封面同在视图区内，淡入 + 上滑出现，只负责滚动 */
-  #lrcScroll { position: absolute; inset: 0; overflow-y: auto; min-height: 0;
+  /* 歌词层：独立成页——位于页眉（viewArea 收缩后）与底部控制区之间，占满两者之间的全部高度，只负责滚动 */
+  #lrcScroll { position: relative; flex: 0 0 0px; min-height: 0; overflow: hidden;
     -webkit-overflow-scrolling: touch; scrollbar-width: none;
     opacity: 0; visibility: hidden; transform: translateY(14px); pointer-events: none;
-    transition: opacity .3s ease, transform .38s cubic-bezier(.32,.72,.28,1), visibility 0s linear .38s; }
-  #mainView.lrc #lrcScroll { opacity: 1; visibility: visible; transform: none; pointer-events: auto;
-    transition: opacity .3s ease .05s, transform .38s cubic-bezier(.32,.72,.28,1), visibility 0s; }
+    transition: flex-grow .38s cubic-bezier(.32,.72,.28,1), flex-basis .38s cubic-bezier(.32,.72,.28,1),
+      opacity .3s ease, transform .38s cubic-bezier(.32,.72,.28,1), visibility 0s linear .38s; }
+  #mainView.lrc #lrcScroll { flex: 1 1 0px; overflow-y: auto;
+    opacity: 1; visibility: visible; transform: none; pointer-events: auto;
+    transition: flex-grow .38s cubic-bezier(.32,.72,.28,1), flex-basis .38s cubic-bezier(.32,.72,.28,1),
+      opacity .3s ease .05s, transform .38s cubic-bezier(.32,.72,.28,1), visibility 0s; }
   #lrcScroll::-webkit-scrollbar { display: none; }
-  #lrcInner { padding: 76px 2px 30dvh; }
-  .lrcline { font-size: 19px; font-weight: 600; line-height: 1.45; color: rgba(255,255,255,.42);
-    padding: 7px 0; transition: color .3s ease, font-size .3s ease; word-break: break-word; }
-  .lrcline.cur { color: #fff; font-size: 21px; font-weight: 800; }
+  #lrcInner { padding: 12px 4px 36dvh; }
+  .lrcline { font-size: 17.5px; font-weight: 600; line-height: 1.6; text-align: center;
+    color: rgba(255,255,255,.42);
+    padding: 8px 0; transition: color .3s ease, font-size .3s ease; word-break: break-word; }
+  .lrcline.cur { color: #fff; font-size: 19px; font-weight: 800; }
   .lrcline.empty { color: rgba(255,255,255,.55); font-weight: 500; }
 
   /* APlayer 隐藏容器：只当引擎，不露原生 UI */
@@ -141,8 +162,9 @@
   <div id="mainView">
     <div id="viewArea">
       <img id="artwork" alt="">
-      <div id="lrcScroll"><div id="lrcInner"></div></div>
+      <div id="lrcHead"><div id="lrcHeadName"></div><div id="lrcHeadArtist"></div></div>
     </div>
+    <div id="lrcScroll"><div id="lrcInner"></div></div>
     <div id="meta">
       <div id="songName"></div>
       <div id="songArtist"></div>
@@ -213,6 +235,8 @@
       }
       document.getElementById("songName").textContent = s.name || "歌曲";
       document.getElementById("songArtist").textContent = s.artist || "";
+      document.getElementById("lrcHeadName").textContent = s.name || "歌曲";
+      document.getElementById("lrcHeadArtist").textContent = s.artist || "";
       var mainView = document.getElementById("mainView");
       mainView.style.display = "flex";
 
@@ -373,7 +397,7 @@
         var kids = lrcInner.children;
         for (var j = 0; j < kids.length; j++) kids[j].classList.toggle("cur", j === idx);
         if (idx >= 0 && Date.now() > lrcHoldUntil) {
-          var target = kids[idx].offsetTop - lrcScroll.clientHeight * 0.38;
+          var target = kids[idx].offsetTop - lrcScroll.clientHeight * 0.40;
           lrcScroll.scrollTo({ top: Math.max(target, 0), behavior: "smooth" });
         }
       }
